@@ -1,18 +1,18 @@
-
 model User{
   id String @id @default(uuid())
-  fullName String?
+  name String?
   email String @unique
   password String
+  profileImage String?
   isActive Boolean @default(true)
+  isDeleted Boolean @default(false)
   role     Role @default(USER)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 enum Role {
+  SuperAdmin
   ADMIN
-  SELLER
-  EMPLOYER
   USER
 }

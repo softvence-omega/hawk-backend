@@ -4,11 +4,6 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import sendResponse from '../utils/sendResponse';
 import { Public } from 'src/common/decorators/public.decorators';
-import {
-  RequestResetCodeDto,
-  ResetPasswordDto,
-  VerifyResetCodeDto,
-} from './dto/forget-reset-password.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { Request, Response } from 'express';
 
@@ -17,17 +12,7 @@ export class AuthController {
   constructor(private authService: AuthService) {}
 
 // register 
-  @Public()
-  @Post('request-register-otp')
-  async requestRegisterOtp(@Body('email') email: string, @Res() res: Response) {
-    const result = await this.authService.requestRegisterOtp(email);
-    return sendResponse(res, {
-      statusCode: HttpStatus.OK,
-      success: true,
-      message: 'OTP sent for registration',
-      data: result,
-    });
-  }
+  
 
 
   @Public()
@@ -82,46 +67,5 @@ export class AuthController {
       data: result,
     });
   }
-
-
-  // forget and reset password 
-  @Public()
-  @Post('request-reset-code')
-  async requestResetCode(@Body() dto: RequestResetCodeDto, @Res() res: Response) {
-    const result = await this.authService.requestResetCode(dto);
-    return sendResponse(res, {
-      statusCode: HttpStatus.OK,
-      success: true,
-      message: 'Reset code sent',
-      data: result,
-    });
-  }
-
-  @Public()
-  @Post('verify-reset-code')
-  async verifyResetCode(@Body() dto: VerifyResetCodeDto, @Res() res: Response) {
-    const result = await this.authService.verifyResetCode(dto);
-    return sendResponse(res, {
-      statusCode: HttpStatus.OK,
-      success: true,
-      message: 'OTP verified',
-      data: result,
-    });
-  }
-
-  @Public()
-  @Post('reset-password')
-  async resetPassword(@Body() dto: ResetPasswordDto, @Res() res: Response) {
-    const result = await this.authService.resetPassword(dto);
-    return sendResponse(res, {
-      statusCode: HttpStatus.OK,
-      success: true,
-      message: 'Password reset successful',
-      data: result,
-    });
-  }
-
-
-
 
 }

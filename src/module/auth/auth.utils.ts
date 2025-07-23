@@ -1,9 +1,5 @@
 // src/auth/utils/auth-utils.ts
-
-import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
-import { PrismaClient } from '@prisma/client';
-import { BadRequestException } from '@nestjs/common';
 
 export async function getTokens(
   jwtService: JwtService,
@@ -26,39 +22,3 @@ export async function getTokens(
 }
 
 
-export function generateOtpCode() {
-  return Math.floor(1000 + Math.random() * 9000).toString();
-}
-
-
-export async function hashOtpCode(code: string) {
-  return bcrypt.hash(code, parseInt(process.env.SALT_ROUND!));
-}
-
-
-export async function verifyOtp(
-  prisma: PrismaClient,
-  email: string,
-  code: string,
-) {
-  const otpRecord = await prisma.otpCode.findFirst({
-    where: { email, verified: false },
-    orderBy: { createdAt: 'desc' },
-  });
-
-  if (!otpRecord || otpRecord.expiresAt < new Date()) {
-    throw new BadRequestException('Invalid or expired code');
-  }
-
-  const isValid = await bcrypt.compare(code, otpRecord.code);
-  if (!isValid) {
-    throw new BadRequestException('Incorrect code');
-  }
-
-  await prisma.otpCode.update({
-    where: { id: otpRecord.id },
-    data: { verified: true },
-  });
-
-  return { message: 'OTP verified successfully' };
-}
