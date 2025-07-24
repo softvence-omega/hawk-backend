@@ -1,80 +1,137 @@
-// import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-// import { PrismaService } from 'src/prisma/prisma.service';
-// import { UpdateUserDto } from './dto/update-user.dto';
-// import { Role } from '@prisma/client';
-// import { CreateAdminDto } from './dto/create-admin.dto';
-// import * as bcrypt from 'bcrypt';
+import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { UpdateUserDto } from './dto/update-user.dto';
+import { Role } from '@prisma/client';
+import { CreateAdminDto } from './dto/create-admin.dto';
+import * as bcrypt from 'bcrypt';
+import { CloudinaryService } from 'src/shared/cloudinary/cloudinary.service';
+import { Cloudinary } from 'src/types/cloudinary/cloudinary.types';
 
-// @Injectable()
-// export class UserService {
-//   constructor(private prisma: PrismaService) {}
+@Injectable()
+export class UserService {
+  constructor(
+    private prisma: PrismaService,
+    private cloudinaryService:CloudinaryService,
+    @Inject('CLOUDINARY') private cloudinary: Cloudinary,
+) {}
 
-//   async createAdmin(dto: CreateAdminDto) {
-//     const existing = await this.prisma.user.findUnique({
-//       where: { email: dto.email },
-//     });
+  async createAdmin(dto: CreateAdminDto) {
+    const existing = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+    });
 
-//     if (existing) throw new BadRequestException('Email already in use');
+    if (existing) throw new BadRequestException('Email already in use');
 
-//     const hashedPassword = await bcrypt.hash(dto.password, 10);
+     const hashedPassword = await bcrypt.hash(dto.password, parseInt(process.env.SALT_ROUND!));
 
-//     const admin = await this.prisma.user.create({
-//       data: {
-//         email: dto.email,
-//         password: hashedPassword,
-//         role: Role.ADMIN,
-//       },
-//     });
+    const admin = await this.prisma.user.create({
+      data: {
+        email: dto.email,
+        password: hashedPassword,
+        role: Role.ADMIN,
+      },
+    });
 
-//     return {
-//       id: admin.id,
-//       email: admin.email,
-//       role: admin.role,
-//     };
-//   }
+    return {
+      id: admin.id,
+      email: admin.email,
+      role: admin.role,
+    };
+  }
 
-//   async getAllUser() {
-//    const users = await this.prisma.user.findMany({
-//     include: {
-//       payment: {
-//         orderBy: { createdAt: 'desc' }, // ensures latest is first
-//       },
-//     },
-//   });
+  async getAllUser() {
+   const users = await this.prisma.user.findMany({
+    where:{isDeleted:false},
+    orderBy:{
+        updatedAt:'desc'
+    }
+   });
+   return users
+  }
 
-//   return users.map(user => {
-//     const latestPayment = user.payment[0]; // most recent
-//     const isActive = latestPayment
-//       ? isSubscriptionActive(latestPayment.createdAt, latestPayment.durationDays ?? 0)
-//       : false;
 
-//     return {
-//       id: user.id,
-//       userName: user.userName,
-//       email: user.email,
-//       role: user.role,
-//       status: user.status,
-//       createdAt: user.createdAt,
-//       hasActiveSubscription: isActive,
-//       latestPaymentDate: latestPayment?.createdAt ?? null,
-//       paymentDurationDays: latestPayment?.durationDays ?? null,
-//       totalPayments: user.payment.length,
-//       isBlocked:user.isBlocked
-//     };
-//   });
-//   }
+ async getSingleUser(id:string){
+    const user = await this.prisma.user.findUnique({where:{id,isDeleted:false}})
+    if (!user) throw new NotFoundException('User not found');
+    return user
+ }
 
-//   async updateUserBlockStatus(userId: string, isBlocked: boolean) {
-//     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-//     if (!user) throw new NotFoundException('User not found');
-//     if(user.role==="SUPER_ADMIN"){
-//       throw new BadRequestException("Super admin can not be blocked!")
-//     }
-//     return this.prisma.user.update({
-//       where: { id: userId },
-//       data: { isBlocked },
-//     });
-//   }
+ async updateMyProfile(id:string,dto:UpdateUserDto,file?:Express.Multer.File){
+    const existingUser= await this.prisma.user.findUnique({
+        where:{
+            id
+        }
+    })
+  if (!existingUser || existingUser.isDeleted || !existingUser.isActive) {
+    throw new NotFoundException('User not found or is inactive/deleted');
+  }
 
+  if(existingUser.id!==id) throw new ForbiddenException("Access Denied!")
+
+ let profileImage=existingUser.profileImage;
+ let cloudinaryPublicId=existingUser.cloudinaryPublicId;
+ 
+ if(file){
+ if(cloudinaryPublicId){
+    await this.cloudinary.uploader.destroy(cloudinaryPublicId);
+ }
+  const {imageUrl,publicId}=await this.cloudinaryService.uploadImage(file) 
+  profileImage=imageUrl
+  cloudinaryPublicId=publicId
+ }
+
+ const updatedUser = await this.prisma.user.update({
+    where:{id},
+    data:{
+        name:dto.name,
+        profileImage,
+        cloudinaryPublicId
+    }
+ })
+const {password,...updatedUserInfo}=updatedUser;
+
+ return updatedUserInfo;
+ }
+
+
+  async updateUserStatus(id: string, isActive: boolean) {
+    const user = await this.prisma.user.findUnique(
+        { where: { id ,isDeleted:false} });
+    if (!user) throw new NotFoundException('User not found');
+
+    if(user.role==='SuperAdmin'){
+      throw new BadRequestException("Super admin can not be blocked!")
+    }
+
+    const updatedUserStatus = await this.prisma.user.update({
+      where: { id },
+      data: { isActive},
+    });
+
+const {password,...updatedUserInfo}=updatedUserStatus;
+
+ return updatedUserInfo;
+  }
+
+
+  async deleteUser(id:string){
+    const user = await this.prisma.user.findUnique(
+        { where: { id ,isDeleted:false} });
+    if (!user) throw new NotFoundException('User not found');
+
+    if(user.isDeleted){
+        throw new BadRequestException('The user already deleted!')
+    }
+
+    const deletedUser = await this.prisma.user.delete({
+        where:{id}
+    })
+
+
+const {password,...deletedUserInfo}=deletedUser;
+
+ return deletedUserInfo;
+}
     
-// }
+    
+}
