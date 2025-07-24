@@ -4,6 +4,7 @@ model User{
   email String @unique
   password String
   profileImage String?
+  cloudinaryPublicId String?
   isActive Boolean @default(true)
   isDeleted Boolean @default(false)
   role     Role @default(USER)

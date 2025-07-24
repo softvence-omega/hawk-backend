@@ -12,6 +12,7 @@ import { JwtService } from '@nestjs/jwt';
 import { LoginDto } from './dto/login.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import {getTokens } from './auth.utils';
+import { CloudinaryService } from 'src/shared/cloudinary/cloudinary.service';
 
 
 @Injectable()
@@ -19,12 +20,12 @@ export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
+    private cloudinary:CloudinaryService
   ) {}
 
 
 // register 
-
-async register(dto: RegisterDto) {
+async register(dto: RegisterDto,file?:Express.Multer.File) {
   const existingUser = await this.prisma.user.findUnique({
     where: { email: dto.email },
   });
@@ -33,13 +34,23 @@ async register(dto: RegisterDto) {
     throw new BadRequestException('Email is already registered!');
   }
 
+ let profileImage:string|undefined;
+ let cloudinaryPublicId:string|undefined;
+ 
+ if(file){
+  const {imageUrl,publicId}=await this.cloudinary.uploadImage(file) 
+  profileImage=imageUrl
+  cloudinaryPublicId=publicId
+ }
+
   const hashedPassword = await bcrypt.hash(dto.password, parseInt(process.env.SALT_ROUND!));
 
   const newUser = await this.prisma.user.create({
     data: {
       name: dto.name,
       email: dto.email,
-      profileImage:dto.profileImage,
+      profileImage,
+      cloudinaryPublicId,
       password: hashedPassword,
     },
   });

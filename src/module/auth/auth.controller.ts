@@ -1,4 +1,4 @@
-import { Body, Controller, HttpStatus, Patch, Post, Req, Res } from '@nestjs/common';
+import { Body, Controller, HttpStatus, Patch, Post, Req, Res, UploadedFile, UseInterceptors } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
@@ -6,8 +6,12 @@ import sendResponse from '../utils/sendResponse';
 import { Public } from 'src/common/decorators/public.decorators';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { Request, Response } from 'express';
-import { ApiCookieAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
-
+import { ApiBody, ApiConsumes, ApiCookieAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname } from 'path';
+import { v4 as uuidv4 } from 'uuid';
+import { userInfo } from 'os';
 
 @Controller('auth')
 export class AuthController {
@@ -17,8 +21,37 @@ export class AuthController {
   
   @Public()
   @Post('register')
-  async register(@Body() dto: RegisterDto, @Res() res: Response) {
-    const result = await this.authService.register(dto);
+  @ApiOperation({ summary: 'Register user with an profileImage (file required)' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    description: 'Register User',
+    schema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', example: 'Albert Einstein' },
+        email: { type: 'string', example: 'user@gmail.com' },
+        password: { type: 'string', example: '123456' },
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+      required: ['email','password'],
+    },
+  })
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+       destination: '/tmp',
+        filename: (req, file, cb) => {
+          const uniqueName = `${uuidv4()}${extname(file.originalname)}`;
+          cb(null, uniqueName);
+        },
+      }),
+    }),
+  )
+  async register(@UploadedFile() file: Express.Multer.File,@Body() dto: RegisterDto, @Res() res: Response) {
+    const result = await this.authService.register(dto,file);
    const {user, accessToken, refreshToken }=result;
   res.cookie('refreshToken', refreshToken, {
     httpOnly: true,
@@ -26,12 +59,12 @@ export class AuthController {
     sameSite: 'strict',
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
-
+const {password,...userInfo}= user
   return sendResponse(res, {
     statusCode: HttpStatus.OK,
     success: true,
-    message: 'Login successful',
-    data: { user,accessToken}, 
+    message: 'Register successful',
+    data: { userInfo,accessToken}, 
   });
   }
 
@@ -42,6 +75,7 @@ export class AuthController {
   async login(@Body() dto: LoginDto, @Res() res: Response) {
     const result = await this.authService.login(dto);
     const {user, accessToken, refreshToken }=result;
+    const {password,...userInfo}= user
   res.cookie('refreshToken', refreshToken, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
@@ -53,7 +87,7 @@ export class AuthController {
     statusCode: HttpStatus.OK,
     success: true,
     message: 'Login successful',
-    data: { user,accessToken}, 
+    data: { userInfo,accessToken}, 
   });
   }
 

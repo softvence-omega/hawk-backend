@@ -5,31 +5,19 @@ import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './module/auth/auth.module';
 import { ConfigModule } from '@nestjs/config';
 import { UserModule } from './module/user/user.module';
-import { MailerModule } from '@nestjs-modules/mailer';
 import { SeederService } from './seeder/seeder.service';
-// import { QuoteModule } from './module/quote/quote.module';
+import { CloudinaryModule } from './shared/cloudinary/cloudinary.module';
+
 
 
 
 @Module({
   imports: [
-    MailerModule.forRoot({
-      transport: {
-        service: 'gmail',
-        auth: {
-          user: process.env.EMAIL_USER,
-          pass: process.env.EMAIL_PASS,
-        },
-      },
-      defaults: {
-        from: process.env.EMAIL_USER,
-      },
-    }),
     ConfigModule.forRoot({ isGlobal: true }),
     PrismaModule,
     AuthModule,
     UserModule,
-    // QuoteModule,
+    CloudinaryModule,
   ],
   controllers: [AppController],
   providers: [AppService, SeederService],
