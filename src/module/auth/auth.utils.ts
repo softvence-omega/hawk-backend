@@ -7,7 +7,7 @@ export async function getTokens(
   email: string,
   role: string,
 ) {
-  const [access_token, refresh_token] = await Promise.all([
+  const [ accessToken, refreshToken ] = await Promise.all([
     jwtService.signAsync({ id: userId, email, role }, {
       secret: process.env.ACCESS_TOKEN_SECRET,
       expiresIn: process.env.ACCESS_TOKEN_EXPIREIN,
@@ -18,7 +18,7 @@ export async function getTokens(
     }),
   ]);
 
-  return { access_token, refresh_token };
+  return { accessToken, refreshToken };
 }
 
 

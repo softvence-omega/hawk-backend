@@ -25,11 +25,15 @@ export class RegisterDto {
   @IsEmail({}, { message: 'Email must be valid!' })
   email: string;
 
+  @ApiProperty({
+    example: 'profileimage.jpg',
+    description: 'User profile imageUrl',
+  })
   @IsOptional()
   profileImage?:string;
 
   @ApiProperty({
-    example: 'strongPassword123',
+    example: '123456',
     description: 'Password with at least 6 characters',
   })
   @IsNotEmpty({ message: 'Password is required!' })

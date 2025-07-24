@@ -10,7 +10,6 @@ import * as bcrypt from 'bcrypt';
 import { RegisterDto } from './dto/register.dto';
 import { JwtService } from '@nestjs/jwt';
 import { LoginDto } from './dto/login.dto';
-import { MailerService } from '@nestjs-modules/mailer';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import {getTokens } from './auth.utils';
 
