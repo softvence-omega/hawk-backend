@@ -7,6 +7,7 @@ import { ConfigModule } from '@nestjs/config';
 import { UserModule } from './module/user/user.module';
 import { SeederService } from './seeder/seeder.service';
 import { CloudinaryModule } from './shared/cloudinary/cloudinary.module';
+import { PropertyModule } from './module/property/property.module';
 
 
 @Module({
@@ -16,6 +17,7 @@ import { CloudinaryModule } from './shared/cloudinary/cloudinary.module';
     AuthModule,
     UserModule,
     CloudinaryModule,
+    PropertyModule,
   ],
   controllers: [AppController],
   providers: [AppService, SeederService],
