@@ -1,0 +1,123 @@
+model Property {
+  id                 String      @id @default(uuid())
+  title              String
+  propertyNote       String?
+  description        String?
+  status             PropertyStatus @default(PENDING)
+  images             String[]    // URLs
+
+  // 🔹 Size & Layout
+  squareFeet         Int? 
+  interiorTotalSqFt   Int?
+  interiorlivableSqFt   Int?
+  interiorFinishedSqFt       Int?
+  lotSizeSqFt        Int?
+  bedrooms           Int?
+  bathrooms          Int?
+  stories            Int?
+  basement           Boolean?
+  roomTypes          String[]
+  totalParkingSpaces Int?
+  attachedGarageSpaces Int?
+
+  // 🔹 Location
+  address            String    
+  city               String
+  region             String
+  zipCode            String          
+  latitude           Float?
+  longitude          Float?
+
+  // 🔹 Auction Info
+  isAuction          Boolean     @default(false)
+  auctionStartDate   DateTime?
+  auctionEndDate     DateTime?
+  auctionCountdown   Int?        // optional seconds or minutes left
+  dom                Int?        // days on market
+
+  // 🔹 Pricing & Financials
+  price              Int?
+  arv                Int?        // After Repair Value
+  rehabEstimate      Int?
+  resale90Day        Int?
+  pricePerSqFt       Int?
+  taxAssessedValue   Int?
+  annualTaxAmount    Int?
+  listingTerms       String[]
+
+  // 🔹 Construction Info
+  yearBuilt          Int?
+  isNewConstruction  Boolean?
+  hasFireplace       Boolean?
+  type               String?     // e.g., Single Family
+  subtype            String?     // e.g., Single Family Residence
+  roofType           String?
+  material           String?     // e.g., Frame
+  heating            String?
+  cooling            String?
+
+  // 🔹 Features
+  appliances         String[]    // Dishwasher, Water Heater, etc.
+  features           String[]    // Fireplace, Formal Dining, etc.
+  diningRoomFeatures  String[]
+  familyRoomFeature   String[]
+  kitchenRoomFeature  String[]
+  parkingFeatures    String[]
+  fireplaceFeatures  String[]
+
+  // 🔹 levels
+  diningLevel        String?
+  familyRoomLevel    String?
+  kitchenLevel        String?
+  livingRoomLevel     String?
+      
+
+  // 🔹 Utilities
+  sewer              String?
+  water              String?
+  propaneRental      Boolean?
+  electricUtility    Boolean?
+
+  // 🔹 Metadata
+  propertySource     PropertySource @default(MANUAL)
+  parcelNumber       String?
+  createdById       String?
+  createdBy         User? @relation(fields: [createdById], references: [id])
+
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+
+  // 🔹 Relationships
+  bids               Bid[]
+  comps              Comp[]      // if you have comparables
+}
+
+
+
+
+model Bid {
+     id                 String      @id @default(uuid())
+     Property Property[]
+}
+
+
+
+
+model Comp {
+   id                 String      @id @default(uuid())  
+   Property Property[]
+}
+
+ 
+enum PropertyStatus {
+  PENDING
+  ACTIVE
+  APPROVED
+  REJECTED
+  SOLD
+}
+
+enum PropertySource {
+  MANUAL
+  SCRAPED
+}

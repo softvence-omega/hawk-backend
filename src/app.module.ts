@@ -9,8 +9,6 @@ import { SeederService } from './seeder/seeder.service';
 import { CloudinaryModule } from './shared/cloudinary/cloudinary.module';
 
 
-
-
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),

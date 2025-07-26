@@ -56,6 +56,14 @@ export class UserService {
     return user
  }
 
+ async getMyProfile(id:string){
+   console.log('userId',id)
+    const user = await this.prisma.user.findFirst({where:{id,isDeleted:false}})
+    if (!user) throw new NotFoundException('User not found');
+    return user
+ }
+
+
  async updateMyProfile(id:string,dto:UpdateUserDto,file?:Express.Multer.File){
     const existingUser= await this.prisma.user.findUnique({
         where:{
@@ -99,7 +107,7 @@ const {password,...updatedUserInfo}=updatedUser;
         { where: { id ,isDeleted:false} });
     if (!user) throw new NotFoundException('User not found');
 
-    if(user.role==='SuperAdmin'){
+    if(user.role==='SUPER_ADMIN'){
       throw new BadRequestException("Super admin can not be blocked!")
     }
 
@@ -116,15 +124,20 @@ const {password,...updatedUserInfo}=updatedUserStatus;
 
   async deleteUser(id:string){
     const user = await this.prisma.user.findUnique(
-        { where: { id ,isDeleted:false} });
+        { where: { id} });
     if (!user) throw new NotFoundException('User not found');
 
     if(user.isDeleted){
         throw new BadRequestException('The user already deleted!')
     }
-
-    const deletedUser = await this.prisma.user.delete({
-        where:{id}
+    if(user.role==='SUPER_ADMIN'){
+      throw new BadRequestException("Super admin can not be deleted!")
+    }
+    const deletedUser = await this.prisma.user.update({
+        where:{id},
+        data:{
+          isDeleted:true
+        }
     })
 
 

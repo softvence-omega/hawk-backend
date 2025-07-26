@@ -2,26 +2,24 @@ import { Body, Controller, HttpStatus, Patch, Post, Req, Res, UploadedFile, UseI
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
-import sendResponse from '../utils/sendResponse';
+import sendResponse from '../../utils/sendResponse';
 import { Public } from 'src/common/decorators/public.decorators';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { Request, Response } from 'express';
 import { ApiBody, ApiConsumes, ApiCookieAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { extname } from 'path';
-import { v4 as uuidv4 } from 'uuid';
-import { userInfo } from 'os';
+import { fileInterceptor } from 'src/utils/fileInterceptor';
+import { Roles } from 'src/common/decorators/roles.decorator';
+import { Role } from '@prisma/client';
+
 
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
 
 // register 
-  
   @Public()
   @Post('register')
-  @ApiOperation({ summary: 'Register user with an profileImage (file required)' })
+  @ApiOperation({ summary: 'Register user with an profileImage (file optional)' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     description: 'Register User',
@@ -39,17 +37,9 @@ export class AuthController {
       required: ['email','password'],
     },
   })
-  @UseInterceptors(
-    FileInterceptor('file', {
-      storage: diskStorage({
-       destination: '/tmp',
-        filename: (req, file, cb) => {
-          const uniqueName = `${uuidv4()}${extname(file.originalname)}`;
-          cb(null, uniqueName);
-        },
-      }),
-    }),
-  )
+    @UseInterceptors(
+      fileInterceptor()
+    )
   async register(@UploadedFile() file: Express.Multer.File,@Body() dto: RegisterDto, @Res() res: Response) {
     const result = await this.authService.register(dto,file);
    const {user, accessToken, refreshToken }=result;
@@ -70,6 +60,7 @@ const {password,...userInfo}= user
 
 
   // login 
+  @ApiOperation({ summary: 'Login user' })
   @Public()
   @Post('login')
   async login(@Body() dto: LoginDto, @Res() res: Response) {
@@ -122,7 +113,9 @@ async refreshToken(@Req() req: Request, @Res() res: Response) {
 
   
   // change password 
+  @ApiOperation({ summary: 'Change your password' })
   @Patch('change-password')
+  @Roles(Role.SUPER_ADMIN,Role.ADMIN,Role.USER)
   async changePassword(@Body() dto: ChangePasswordDto, @Req() req: Request, @Res() res: Response) {
     const result = await this.authService.changePassword(req.user!.email, dto);
     return sendResponse(res, {

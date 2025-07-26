@@ -10,10 +10,12 @@ model User{
   role     Role @default(USER)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  Property Property[]
 }
 
 enum Role {
-  SuperAdmin
+  SUPER_ADMIN
   ADMIN
   USER
 }
