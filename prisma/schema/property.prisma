@@ -1,6 +1,6 @@
 model Property {
   id                 String      @id @default(uuid())
-  title              String
+  title              String      @unique
   propertyNote       String?
   description        String?
   status             PropertyStatus @default(PENDING)
