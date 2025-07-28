@@ -4,7 +4,7 @@ model Property {
   propertyNote       String?
   description        String?
   status             PropertyStatus @default(PENDING)
-  images             String[]    // URLs
+  images             PropertyImage[]    
 
   // 🔹 Size & Layout
   squareFeet         Int? 
@@ -90,6 +90,16 @@ model Property {
   // 🔹 Relationships
   bids               Bid[]
   comps              Comp[]      // if you have comparables
+}
+
+
+
+model PropertyImage {
+  id         String  @id @default(uuid())
+  propertyId String
+  imageUrl   String
+  publicId   String
+  property   Property @relation(fields: [propertyId], references: [id])
 }
 
 
