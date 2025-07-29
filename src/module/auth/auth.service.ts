@@ -10,14 +10,9 @@ import * as bcrypt from 'bcrypt';
 import { RegisterDto } from './dto/register.dto';
 import { JwtService } from '@nestjs/jwt';
 import { LoginDto } from './dto/login.dto';
-import { MailerService } from '@nestjs-modules/mailer';
-import {
-  RequestResetCodeDto,
-  ResetPasswordDto,
-  VerifyResetCodeDto,
-} from './dto/forget-reset-password.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
-import { generateOtpCode, getTokens, hashOtpCode, verifyOtp } from './auth.utils';
+import {getTokens } from './auth.utils';
+import { CloudinaryService } from 'src/shared/cloudinary/cloudinary.service';
 
 
 @Injectable()
@@ -25,35 +20,12 @@ export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
-    private mailerService: MailerService,
+    private cloudinary:CloudinaryService
   ) {}
 
 
 // register 
-  async requestRegisterOtp(email: string) {
-    const user = await this.prisma.user.findUnique({ where: { email } });
-    if (user) {
-      throw new BadRequestException('Email already registered');
-    }
-
-    const code = generateOtpCode();
-    const hashedCode =await hashOtpCode(code);
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
-
-    await this.prisma.otpCode.create({
-      data: { email, code: hashedCode, expiresAt },
-    });
-
-    await this.mailerService.sendMail({
-      to: email,
-      subject: 'Your verification code',
-      text: `Your OTP code is ${code}. It will expire in 5 minutes.`,
-    });
-
-    return { message: 'OTP sent to your email' };
-  }
-
-async register(dto: RegisterDto) {
+async register(dto: RegisterDto,file?:Express.Multer.File) {
   const existingUser = await this.prisma.user.findUnique({
     where: { email: dto.email },
   });
@@ -62,21 +34,26 @@ async register(dto: RegisterDto) {
     throw new BadRequestException('Email is already registered!');
   }
 
-
-  await verifyOtp(this.prisma,dto.email, dto.code);
+ let profileImage:string|undefined;
+ let cloudinaryPublicId:string|undefined;
+ 
+ if(file){
+  const {imageUrl,publicId}=await this.cloudinary.uploadImage(file) 
+  profileImage=imageUrl
+  cloudinaryPublicId=publicId
+ }
 
   const hashedPassword = await bcrypt.hash(dto.password, parseInt(process.env.SALT_ROUND!));
 
   const newUser = await this.prisma.user.create({
     data: {
-      fullName: dto.fullName,
+      name: dto.name,
       email: dto.email,
+      profileImage,
+      cloudinaryPublicId,
       password: hashedPassword,
-      role: dto.role,
     },
   });
-
-  await this.prisma.otpCode.deleteMany({ where: { email: dto.email } });
 
   const tokens = await getTokens(this.jwtService,newUser.id, newUser.email, newUser.role);
   return { user: newUser, ...tokens };
@@ -92,7 +69,9 @@ async register(dto: RegisterDto) {
     if (!user || !user.password) {
       throw new ForbiddenException('Invalid credentials');
     }
-
+    if(user.isDeleted){
+        throw new NotFoundException("user doesn't exist!");
+    }
     if(!user.isActive){
         throw new BadRequestException('User is blocked!');
     }
@@ -114,10 +93,13 @@ async register(dto: RegisterDto) {
         secret: process.env.REFRESH_TOKEN_SECRET,
       });
 
-      const user = await this.prisma.user.findUnique({ where: { email: payload.email } });
+      const user = await this.prisma.user.findUnique({ where: { email: payload.email,isDeleted:false } });
       if (!user) throw new UnauthorizedException('Invalid refresh token');
       if(!user.isActive){
        throw new BadRequestException('User is blocked!');
+      }
+      if(user.isDeleted){
+        throw new NotFoundException("user doesn't exist!");
       }
       return getTokens(this.jwtService,user.id, user.email, user.role);
     } catch {
@@ -135,6 +117,9 @@ async register(dto: RegisterDto) {
   if(!user.isActive){
       throw new BadRequestException('User is blocked!');
   }
+   if(user.isDeleted){
+        throw new NotFoundException("user doesn't exist!");
+    }
     const isMatch = await bcrypt.compare(dto.oldPassword, user.password);
     if (!isMatch) {
       throw new BadRequestException('Old password is incorrect');
@@ -154,60 +139,10 @@ async register(dto: RegisterDto) {
   }
 
 
-// forget and reset password 
-  async requestResetCode(dto: RequestResetCodeDto) {
-    const user = await this.prisma.user.findUnique({ where: { email: dto.email } });
-    if (!user) throw new NotFoundException('User not found');
-     if(!user.isActive){
-      throw new BadRequestException('User is blocked!');
-    }
 
 
-    const code = generateOtpCode();
-    const hashedCode = await hashOtpCode(code);
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
-    await this.prisma.otpCode.create({
-      data: { email: dto.email, code: hashedCode, expiresAt },
-    });
 
-    await this.mailerService.sendMail({
-      to: dto.email,
-      subject: 'Reset Password Code',
-      text: `Your OTP code is ${code}. It will expire in 5 minutes.`,
-    });
-
-    return { message: 'Reset code sent' };
-  }
-
-  async verifyResetCode(dto: VerifyResetCodeDto) {
-    return verifyOtp(this.prisma,dto.email, dto.code);
-  }
-
-  async resetPassword(dto: ResetPasswordDto) {
-    if (dto.password !== dto.confirmPassword) {
-      throw new BadRequestException("Passwords don't match");
-    }
-
-    const verified = await this.prisma.otpCode.findFirst({
-      where: { email: dto.email, verified: true },
-      orderBy: { createdAt: 'desc' },
-    });
-
-    if (!verified) {
-      throw new BadRequestException('OTP not verified');
-    }
-
-    const hashed = await bcrypt.hash(dto.password, parseInt(process.env.SALT_ROUND!));
-    await this.prisma.user.update({
-      where: { email: dto.email },
-      data: { password: hashed },
-    });
-
-    await this.prisma.otpCode.deleteMany({ where: { email: dto.email } });
-
-    return { message: 'Password reset successful' };
-  }
 
  
 }

@@ -11,7 +11,7 @@ export class LoginDto {
   email: string;
 
   @ApiProperty({
-    example: 'strongPassword123',
+    example: '123456',
     description: 'User password (min 6 characters)',
   })
   @IsNotEmpty({ message: 'Password is required!' })
