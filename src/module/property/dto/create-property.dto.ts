@@ -13,8 +13,6 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 export enum PropertyStatus {
   PENDING = 'PENDING',
   ACTIVE = 'ACTIVE',
-  APPROVED = 'APPROVED',
-  REJECTED = 'REJECTED',
   SOLD = 'SOLD',
 }
 
@@ -38,15 +36,6 @@ export class CreatePropertyDto {
   @IsString()
   description?: string;
 
-  @ApiPropertyOptional({ enum: PropertyStatus, default: PropertyStatus.PENDING })
-  @IsOptional()
-  @IsEnum(PropertyStatus)
-  status?: PropertyStatus;
-
-  @ApiProperty({ type: [String], example: ['https://img.com/house1.jpg'] })
-  @IsArray()
-  @IsString({ each: true })
-  images: string[];
 
   // Size & Layout
   @ApiPropertyOptional({ example: 2500 })
@@ -77,7 +66,7 @@ export class CreatePropertyDto {
   @IsOptional() @IsBoolean() basement?: boolean;
 
   @ApiProperty({ type: [String], example: ['Living Room', 'Dining Room'] })
-  @IsArray() @IsString({ each: true }) roomTypes: string[];
+  @IsOptional() @IsArray() @IsString({ each: true }) roomTypes: string[];
 
   @ApiPropertyOptional({ example: 4 })
   @IsOptional() @IsInt() totalParkingSpaces?: number;
@@ -113,12 +102,6 @@ export class CreatePropertyDto {
 
   @ApiPropertyOptional({ example: '2025-08-10T18:00:00Z' })
   @IsOptional() @IsDateString() auctionEndDate?: string;
-
-  @ApiPropertyOptional({ example: 300 })
-  @IsOptional() @IsInt() auctionCountdown?: number;
-
-  @ApiPropertyOptional({ example: 12 })
-  @IsOptional() @IsInt() dom?: number;
 
   // Pricing
   @ApiPropertyOptional({ example: 450000 })
@@ -230,4 +213,18 @@ export class CreatePropertyDto {
 
   @ApiPropertyOptional({ example: 'user-uuid-here' })
   @IsOptional() @IsString() createdById?: string;
+}
+
+
+export class CreatePropertyDtoWithFiles extends CreatePropertyDto {
+  @ApiProperty({
+    type: 'array',
+    items: {
+      type: 'string',
+      format: 'binary',
+    },
+    description: 'Upload up to 10 images',
+    required: false,
+  })
+  files: any;
 }

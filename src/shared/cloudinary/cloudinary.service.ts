@@ -30,6 +30,43 @@ return {imageUrl,publicId}
 
     }
 
+async deleteImage(publicId:string){
+  try {
+    await this.cloudinary.uploader.destroy(publicId)
+  } catch (error) {
+    console.error(error)
+  }
+  
+}
+
+// async uploadFromUrl(url: string) {
+//   const response = await axios.get(url, { responseType: 'arraybuffer' });
+//   const buffer = Buffer.from(response.data, 'binary');
+
+//   return new Promise<{ imageUrl: string; publicId: string }>((resolve, reject) => {
+//     const uploadStream = this.cloudinary.uploader.upload_stream(
+//       { folder: 'Ez Deal Hub' },
+//       (error, result) => {
+//         if (error) return reject(error);
+//         resolve({ imageUrl: result.secure_url, publicId: result.public_id });
+//       }
+//     );
+
+//     const stream = new Readable();
+//     stream.push(buffer);
+//     stream.push(null);
+//     stream.pipe(uploadStream);
+//   });
+// }
+
+// async uploadManyFromUrls(urls: string[]) {
+//   const results = [];
+//   for (const url of urls) {
+//     const uploaded = await this.uploadFromUrl(url);
+//     results.push(uploaded);
+//   }
+//   return results;
+// }
 
 
 }

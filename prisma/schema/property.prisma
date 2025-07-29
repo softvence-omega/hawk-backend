@@ -81,8 +81,8 @@ model Property {
   // 🔹 Metadata
   propertySource     PropertySource @default(MANUAL)
   parcelNumber       String?
-  createdById       String?
-  createdBy         User? @relation(fields: [createdById], references: [id])
+  createdById       String
+  createdBy         User @relation(fields: [createdById], references: [id])
 
   createdAt          DateTime    @default(now())
   updatedAt          DateTime    @updatedAt
@@ -122,8 +122,6 @@ model Comp {
 enum PropertyStatus {
   PENDING
   ACTIVE
-  APPROVED
-  REJECTED
   SOLD
 }
 
@@ -131,3 +129,5 @@ enum PropertySource {
   MANUAL
   SCRAPED
 }
+
+
