@@ -84,6 +84,14 @@ model Property {
   createdById       String
   createdBy         User @relation(fields: [createdById], references: [id])
 
+
+
+  // 🔹 New fields for enrichment
+  zillowUrl            String?        // link to matched zillow page
+  enrichedFromZillow   Boolean?       @default(false)
+  zillowZestimate      Int?           // optional Zestimate
+  zillowStatus         String?        // "FOR_SALE", "SOLD", etc.
+
   createdAt          DateTime    @default(now())
   updatedAt          DateTime    @updatedAt
 
@@ -123,6 +131,8 @@ enum PropertyStatus {
   PENDING
   ACTIVE
   SOLD
+  POSTPONED 
+  CANCELED
 }
 
 enum PropertySource {

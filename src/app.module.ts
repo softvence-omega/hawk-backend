@@ -8,6 +8,7 @@ import { UserModule } from './module/user/user.module';
 import { SeederService } from './seeder/seeder.service';
 import { CloudinaryModule } from './shared/cloudinary/cloudinary.module';
 import { PropertyModule } from './module/property/property.module';
+import { ScraperModule } from './module/scraper/scraper.module';
 
 
 @Module({
@@ -18,6 +19,7 @@ import { PropertyModule } from './module/property/property.module';
     UserModule,
     CloudinaryModule,
     PropertyModule,
+    ScraperModule,
   ],
   controllers: [AppController],
   providers: [AppService, SeederService],

@@ -14,6 +14,8 @@ export enum PropertyStatus {
   PENDING = 'PENDING',
   ACTIVE = 'ACTIVE',
   SOLD = 'SOLD',
+  POSTPONED ='POSTPONED',
+  CANCELED='CANCELED'
 }
 
 export enum PropertySource {
